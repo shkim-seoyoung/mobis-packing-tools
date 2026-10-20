@@ -23,10 +23,18 @@ body.logged-in #loginStage .editor-frame{height:100%!important}
 .editor-frame{display:none;border:0;width:100%;height:100%;background:#fff}
 @media(max-width:720px){.cards{grid-template-columns:1fr}#menu{margin:32px auto}header{padding:0 15px}}
 @media print{header,#menu{display:none!important}#workspace{height:auto!important}}
-@media(max-width:800px){body.qr-scan-mode>header{display:flex!important}body.qr-scan-mode #workspace{height:calc(100dvh - 64px)!important}body.qr-scan-mode .editor-frame{height:100%!important}}
+/* QR 화면에서는 통합 상단바를 숨기고 검증 영역을 전체 높이로 사용 */
+body.logged-in.qr-active>header{display:none!important}
+body.logged-in.qr-active #loginStage{top:0!important}
+body.logged-in.qr-active #workspace{height:100dvh!important}
+body.logged-in.qr-active .editor-frame{height:100%!important}
+#qrMenuReturn{display:none;position:fixed;left:12px;bottom:16px;z-index:30;border:1px solid #b9c7d9;border-radius:9px;background:#fff;color:#263a52;padding:8px 11px;font-size:12px;font-weight:700;box-shadow:0 2px 8px #0002;cursor:pointer}
+body.logged-in.qr-active #qrMenuReturn{display:block}
+@media print{#qrMenuReturn{display:none!important}}
 </style></head><body>
 <header><button id="back" type="button">← 전체 메뉴</button><h1 id="appTitle">MOBIS 포장작업 통합도구</h1><div id="account"><span id="roleLabel"></span><button id="globalLogout" type="button">로그아웃</button></div></header>
 <div id="loginStage"></div>
+<button id="qrMenuReturn" type="button" aria-label="전체 메뉴로 돌아가기">← 전체 메뉴</button>
 <main id="menu"><h2>전체 메뉴</h2>
 <div class="cards">
 <button class="card" type="button" data-editor="ct"><span class="symbol">▤</span><strong>C/T 작업지시서 편집</strong><span>SAP PDF 등록 · 작업지시서 수정 · 출력</span></button>
@@ -98,11 +106,13 @@ function navigate(target){
  document.getElementById("appTitle").textContent=active?labels[active]:"MOBIS 포장작업 통합도구";
  for(const key of Object.keys(frames))frames[key].style.display=(key===active || (key==="qr" && !parentRole))?"block":"none";
  document.getElementById("workspace").dataset.active=active||"";
+ document.body.classList.toggle("qr-active",active==="qr");
  if(active&&!loaded[active]){loaded[active]=true;frames[active].srcdoc=decodeHTML(contents[active])}
  applyRoleAccess();
 }
 document.querySelectorAll("[data-editor]").forEach(button=>button.addEventListener("click",()=>navigate(button.dataset.editor)));
 document.getElementById("back").addEventListener("click",()=>navigate(null));
+document.getElementById("qrMenuReturn").addEventListener("click",()=>navigate(null));
 document.getElementById("globalLogout").addEventListener("click",()=>{
  const logout=frames.qr.contentDocument?.getElementById("logout");
  if(logout)logout.click();else alert("QR 검증 화면에서 로그아웃한 뒤 다시 시도해 주세요.");
