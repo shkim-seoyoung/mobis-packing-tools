@@ -1,4 +1,4 @@
-<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MOBIS 포장작업 편집 도구</title>
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MOBIS 포장작업 통합도구</title>
 <style>
 *{box-sizing:border-box}body{margin:0;font:14px "Malgun Gothic",Arial,sans-serif;background:#f0f3f7;color:#192a40}
 header{height:64px;background:white;border-bottom:1px solid #dce3ed;display:flex;align-items:center;gap:18px;padding:0 26px}
@@ -11,18 +11,25 @@ header h1{font-size:19px;margin:0}#back{display:none;border:1px solid #cbd5e1;ba
 .card:disabled{cursor:default;opacity:.57}
 .symbol{font-size:27px}
 #workspace{display:none;height:calc(100vh - 64px)}
+#loginStage{position:fixed;inset:0;background:#f0f3f7;z-index:20;display:block}
+#loginFrame{border:0;width:100%;height:100%;background:#fff}
+#account{margin-left:auto;display:none;align-items:center;gap:8px;font-size:12px;color:#475569}
+#globalLogout{border:1px solid #cbd5e1;border-radius:7px;background:white;padding:8px 11px;cursor:pointer}
+body:not(.logged-in) header{display:none}
+body:not(.logged-in) #menu,body:not(.logged-in) #workspace{display:none!important}
 .editor-frame{display:none;border:0;width:100%;height:100%;background:#fff}
 @media(max-width:720px){.cards{grid-template-columns:1fr}#menu{margin:32px auto}header{padding:0 15px}}
 @media print{header,#menu{display:none!important}#workspace{height:auto!important}}
 @media(max-width:800px){body.qr-scan-mode>header{display:none!important}body.qr-scan-mode #workspace{height:100dvh!important}body.qr-scan-mode .editor-frame{height:100%!important}}
 </style></head><body>
-<header><button id="back" type="button">← 전체 메뉴</button><h1 id="appTitle">MOBIS 포장작업 편집 도구</h1></header>
-<main id="menu"><h2>편집 작업 선택</h2>
+<header><button id="back" type="button">← 전체 메뉴</button><h1 id="appTitle">MOBIS 포장작업 통합도구</h1><div id="account"><span id="roleLabel"></span><button id="globalLogout" type="button">로그아웃</button></div></header>
+<div id="loginStage"></div>
+<main id="menu"><h2>전체 메뉴</h2>
 <div class="cards">
 <button class="card" type="button" data-editor="ct"><span class="symbol">▤</span><strong>C/T 작업지시서 편집</strong><span>SAP PDF 등록 · 작업지시서 수정 · 출력</span></button>
 <button class="card" type="button" data-editor="label"><span class="symbol">▥</span><strong>MOBIS 부품식별표 편집</strong><span>출하 조합 관리 · 식별표 생성 · 출력</span></button>
 <button class="card" type="button" data-editor="qr"><span class="symbol">▣</span><strong>QR 적입 검증</strong><span>검증 데이터 등록 · CASE QR 스캔 · 이력 확인</span></button>
-<button class="card" type="button" disabled><span class="symbol">▧</span><strong>쉬핑마크 편집</strong><span>준비 중</span></button>
+
 </div></main>
 <section id="workspace"><iframe class="editor-frame" id="ctFrame" title="C/T 작업지시서 편집" allow="clipboard-read; clipboard-write"></iframe><iframe class="editor-frame" id="qrFrame" title="QR 적입 검증" allow="camera; clipboard-read; clipboard-write"></iframe><iframe class="editor-frame" id="labelFrame" title="MOBIS 부품식별표 편집" allow="clipboard-read; clipboard-write"></iframe></section>
 <script>
@@ -33,9 +40,18 @@ const loaded={ct:false,label:false,qr:false};
 let qrDraft=null;
 let qrPdfDocs=null;
 let parentRole="";
-function applyRoleAccess(){const admin=parentRole==="ADMIN";document.getElementById("back").style.display=admin&&document.getElementById("workspace").style.display==="block"?"inline-block":"none";document.getElementById("menu").style.display=admin&&document.getElementById("workspace").style.display==="none"?"block":"none";}
+function applyRoleAccess(){
+ const authenticated=parentRole==="ADMIN"||parentRole==="USER";
+ document.body.classList.toggle("logged-in",authenticated);
+ document.getElementById("loginStage").style.display=authenticated?"none":"block";
+ document.getElementById("account").style.display=authenticated?"flex":"none";
+ document.getElementById("roleLabel").textContent=parentRole;
+ document.querySelectorAll('[data-editor]').forEach(b=>b.style.display=parentRole==="ADMIN"||b.dataset.editor==="qr"?"":"none");
+ document.getElementById("back").style.display=authenticated&&document.getElementById("workspace").style.display==="block"?"inline-block":"none";
+ document.getElementById("menu").style.display=authenticated&&document.getElementById("workspace").style.display==="none"?"block":"none";
+}
 window.addEventListener("message",e=>{if(e.source!==frames.qr.contentWindow||!e.data||e.data.type!=="mobis-qr-view-v1")return;document.body.classList.toggle("qr-scan-mode",e.data.view==="scan")});
-window.addEventListener("message",e=>{if(e.source!==frames.qr.contentWindow||!e.data||e.data.type!=="mobis-qr-role-v1")return;parentRole=e.data.role==="ADMIN"?"ADMIN":e.data.role==="USER"?"USER":"";if(parentRole!=="ADMIN")navigate("qr");applyRoleAccess()});
+window.addEventListener("message",e=>{if(e.source!==frames.qr.contentWindow||!e.data||e.data.type!=="mobis-qr-role-v1")return;parentRole=e.data.role==="ADMIN"?"ADMIN":e.data.role==="USER"?"USER":"";if(parentRole)navigate(null);else navigate(null);applyRoleAccess()});
 window.addEventListener("message",e=>{if(e.source!==frames.ct.contentWindow||!e.data||e.data.type!=="mobis-qr-draft-v1")return;const p=e.data.payload;if(!p||!Array.isArray(p.cases))return;if(Array.isArray(e.data.pdfDocs)&&e.data.pdfDocs.length){qrPdfDocs=e.data.pdfDocs;const known=new Set(qrPdfDocs.flatMap(d=>d.rows.map(r=>r.no)));const extras=(e.data.editedRows||[]).filter(r=>!known.has(r.no));if(extras.length)qrPdfDocs[0].rows.push(...extras)}
  qrDraft={wi:String(p.wi||""),ct:String(p.ct||""),cases:p.cases.map(String)};navigate("qr");setTimeout(()=>frames.qr.contentWindow.postMessage({type:"mobis-qr-fill-v1",payload:qrDraft},"*"),120)});
 window.addEventListener("message",e=>{
@@ -71,17 +87,37 @@ window.addEventListener('message',e=>{
 });
 function decodeHTML(data){const binary=atob(data);const bytes=Uint8Array.from(binary,c=>c.charCodeAt(0));return new TextDecoder("utf-8").decode(bytes)}
 function navigate(target){
- if(parentRole!=="ADMIN" && target!=="qr")target="qr";
+ if(parentRole!=="ADMIN" && target!=="qr" && target!==null)target=null;
  const active=target==="ct"||target==="label"||target==="qr"?target:null;
  document.getElementById("menu").style.display=active?"none":"block";
  document.getElementById("workspace").style.display=active?"block":"none";
  document.getElementById("back").style.display=active?"inline-block":"none";
- document.getElementById("appTitle").textContent=active?labels[active]:"MOBIS 포장작업 편집 도구";
+ document.getElementById("appTitle").textContent=active?labels[active]:"MOBIS 포장작업 통합도구";
  for(const key of Object.keys(frames))frames[key].style.display=key===active?"block":"none";
  if(active&&!loaded[active]){loaded[active]=true;frames[active].srcdoc=decodeHTML(contents[active])}
  applyRoleAccess();
 }
 document.querySelectorAll("[data-editor]").forEach(button=>button.addEventListener("click",()=>navigate(button.dataset.editor)));
 document.getElementById("back").addEventListener("click",()=>navigate(null));
-navigate("qr");
+document.getElementById("globalLogout").addEventListener("click",()=>{
+ const logout=frames.qr.contentDocument?.getElementById("logout");
+ if(logout)logout.click();else alert("QR 검증 화면에서 로그아웃한 뒤 다시 시도해 주세요.");
+});
+// Authentication is performed by the existing QR application, sharing its Supabase session.
+// It is displayed as the entry screen until a validated ADMIN/USER role is reported.
+loaded.qr=true;
+frames.qr.srcdoc=decodeHTML(contents.qr);
+// A single iframe cannot be placed in two containers. Move it between login and workspace.
+const loginStage=document.getElementById("loginStage");
+const workspace=document.getElementById("workspace");
+loginStage.appendChild(frames.qr);
+frames.qr.style.display="block";
+frames.qr.style.height="100%";
+const originalNavigate=navigate;
+navigate=function(target){
+ if(parentRole && frames.qr.parentElement!==workspace)workspace.appendChild(frames.qr);
+ originalNavigate(target);
+ if(!parentRole){loginStage.appendChild(frames.qr);frames.qr.style.display="block";frames.qr.style.height="100%"}
+};
+navigate(null);
 </script></body></html>
