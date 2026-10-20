@@ -17,6 +17,9 @@ header h1{font-size:19px;margin:0}#back{display:none;border:1px solid #cbd5e1;ba
 #globalLogout{border:1px solid #cbd5e1;border-radius:7px;background:white;padding:8px 11px;cursor:pointer}
 body:not(.logged-in) header{display:none}
 body:not(.logged-in) #menu,body:not(.logged-in) #workspace{display:none!important}
+body.logged-in #loginStage{top:64px;z-index:5}
+body.logged-in.qr-scan-mode #loginStage{top:0}
+body.logged-in #loginStage .editor-frame{height:100%!important}
 .editor-frame{display:none;border:0;width:100%;height:100%;background:#fff}
 @media(max-width:720px){.cards{grid-template-columns:1fr}#menu{margin:32px auto}header{padding:0 15px}}
 @media print{header,#menu{display:none!important}#workspace{height:auto!important}}
@@ -43,7 +46,7 @@ let parentRole="";
 function applyRoleAccess(){
  const authenticated=parentRole==="ADMIN"||parentRole==="USER";
  document.body.classList.toggle("logged-in",authenticated);
- document.getElementById("loginStage").style.display=authenticated?"none":"block";
+ document.getElementById("loginStage").style.display=(!authenticated||document.getElementById("workspace").dataset.active==="qr")?"block":"none";
  document.getElementById("account").style.display=authenticated?"flex":"none";
  document.getElementById("roleLabel").textContent=parentRole;
  document.querySelectorAll('[data-editor]').forEach(b=>b.style.display=parentRole==="ADMIN"||b.dataset.editor==="qr"?"":"none");
@@ -93,7 +96,8 @@ function navigate(target){
  document.getElementById("workspace").style.display=active?"block":"none";
  document.getElementById("back").style.display=active?"inline-block":"none";
  document.getElementById("appTitle").textContent=active?labels[active]:"MOBIS 포장작업 통합도구";
- for(const key of Object.keys(frames))frames[key].style.display=key===active?"block":"none";
+ for(const key of Object.keys(frames))frames[key].style.display=(key===active || (key==="qr" && !parentRole))?"block":"none";
+ document.getElementById("workspace").dataset.active=active||"";
  if(active&&!loaded[active]){loaded[active]=true;frames[active].srcdoc=decodeHTML(contents[active])}
  applyRoleAccess();
 }
@@ -107,17 +111,11 @@ document.getElementById("globalLogout").addEventListener("click",()=>{
 // It is displayed as the entry screen until a validated ADMIN/USER role is reported.
 loaded.qr=true;
 frames.qr.srcdoc=decodeHTML(contents.qr);
-// A single iframe cannot be placed in two containers. Move it between login and workspace.
+// Keep the QR authentication iframe permanently mounted. Moving a live iframe
+// between containers reloads its document and can trigger a logout/login loop.
 const loginStage=document.getElementById("loginStage");
-const workspace=document.getElementById("workspace");
 loginStage.appendChild(frames.qr);
 frames.qr.style.display="block";
 frames.qr.style.height="100%";
-const originalNavigate=navigate;
-navigate=function(target){
- if(parentRole && frames.qr.parentElement!==workspace)workspace.appendChild(frames.qr);
- originalNavigate(target);
- if(!parentRole){loginStage.appendChild(frames.qr);frames.qr.style.display="block";frames.qr.style.height="100%"}
-};
 navigate(null);
 </script></body></html>
