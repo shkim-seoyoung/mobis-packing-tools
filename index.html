@@ -24,12 +24,12 @@ body.logged-in #loginStage .editor-frame{height:100%!important}
 @media(max-width:720px){.cards{grid-template-columns:1fr}#menu{margin:32px auto}header{padding:0 15px}}
 @media print{header,#menu{display:none!important}#workspace{height:auto!important}}
 /* QR 화면에서는 통합 상단바를 숨기고 검증 영역을 전체 높이로 사용 */
-body.logged-in.qr-active>header{display:none!important}
-body.logged-in.qr-active #loginStage{top:0!important}
-body.logged-in.qr-active #workspace{height:100dvh!important}
+body.logged-in.qr-active.qr-scan-mode>header{display:none!important}
+body.logged-in.qr-active.qr-scan-mode #loginStage{top:0!important}
+body.logged-in.qr-active.qr-scan-mode #workspace{height:100dvh!important}
 body.logged-in.qr-active .editor-frame{height:100%!important}
 #qrMenuReturn{display:none;position:fixed;left:12px;bottom:16px;z-index:30;border:1px solid #b9c7d9;border-radius:9px;background:#fff;color:#263a52;padding:8px 11px;font-size:12px;font-weight:700;box-shadow:0 2px 8px #0002;cursor:pointer}
-body.logged-in.qr-active #qrMenuReturn{display:block}
+body.logged-in.qr-active.qr-scan-mode #qrMenuReturn{display:block}
 @media print{#qrMenuReturn{display:none!important}}
 /* 업무 메뉴와 구분되는 작은 외부 뉴스 바로가기 */
 .news-shortcut{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin:20px 2px 0;color:#94a3b8;font-size:12px}
@@ -125,6 +125,7 @@ function navigate(target){
  for(const key of Object.keys(frames))frames[key].style.display=(key===active || (key==="qr" && !parentRole))?"block":"none";
  document.getElementById("workspace").dataset.active=active||"";
  document.body.classList.toggle("qr-active",active==="qr");
+ if(active!=="qr")document.body.classList.remove("qr-scan-mode");
  if(active&&!loaded[active]){loaded[active]=true;frames[active].srcdoc=decodeHTML(contents[active])}
  applyRoleAccess();
 }
