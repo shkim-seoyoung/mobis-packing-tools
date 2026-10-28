@@ -754,6 +754,7 @@ $('wbEditCancel').onclick=()=>{$('wbEdit').classList.remove('open');editing=null
  });
 }
 $('wbEditDelete').onclick=async()=>{if(!editing)return;const it=state.items.find(x=>x.id===editing.id);if(!it)return;if(it.repeat){
+  if(!serverReady){$('wbMemoStatus').textContent='삭제 실패: 서버에 연결되지 않았습니다.';return}
   const choice=await askRepeatDelete();
   if(choice==='one'){
     if(!Array.isArray(it.excluded))it.excluded=[];
@@ -763,6 +764,23 @@ $('wbEditDelete').onclick=async()=>{if(!editing)return;const it=state.items.find
     // Stop from the selected occurrence onward; earlier occurrences remain intact.
     it.repeatUntil=shift(editing.date,-1);
   }else return;
+  // Repeating events are one server row. Save the exclusion/end date
+  // directly instead of relying on a delayed full-board snapshot.
+  if(syncRunning){$('wbMemoStatus').textContent='서버 저장 중입니다. 잠시 후 다시 시도해 주세요.';return}
+  if(dirty)await flushServer();
+  if(syncRunning||dirty){$('wbMemoStatus').textContent='서버 저장 완료 후 다시 시도해 주세요.';return}
+  const original={excluded:[...(it.excluded||[])],repeatUntil:it.repeatUntil||null,completed:{...(it.completed||{})}};
+  const row=toServer(it);
+  $('wbMemoStatus').textContent='반복 일정 변경 서버 저장 중…';
+  const result=await wbRequest('upsert',{event:row});
+  if(result.error||!result.saved){
+    it.excluded=original.excluded;it.repeatUntil=original.repeatUntil;it.completed=original.completed;
+    $('wbMemoStatus').textContent='반복 일정 저장 실패: '+(result.error||'서버 확인 실패');render();return;
+  }
+  serverItems.set(it.id,row);
+  try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}
+  $('wbMemoStatus').textContent='반복 일정 서버 저장됨';
+  $('wbEditCancel').click();render();return;
  }else{
    if(!confirm('이 일정을 삭제할까요?'))return;
    if(!serverReady){$('wbMemoStatus').textContent='삭제 실패: 서버에 연결되지 않았습니다.';return}
