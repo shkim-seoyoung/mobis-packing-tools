@@ -651,16 +651,16 @@ async function flushServer(){if(syncRunning){syncQueued=true;return}if(!serverRe
 let serverMemoValue='';
 async function loadServer(force=false){if(serverLoadBusy||(serverReady&&!force)||!['ADMIN','USER'].includes(parentRole))return;if(!(boardCanManage()||myPermissions.board_access==='shared'))return;serverLoadBusy=true;
  const r=await wbRequest('load');serverLoadBusy=false;if(r.error){console.warn('업무보드 서버 조회 실패:',r.error);const st=$('wbMemoStatus');if(st)st.textContent='서버 연결 실패: '+r.error;setTimeout(()=>{if(!serverReady&&parentRole)loadServer()},3500);return}
- if(force&&dirty)return;const remote=(r.events||[]).map(fromServer);serverItems=new Map((r.events||[]).map(x=>[x.id,toServer(fromServer(x))]));
+ if(force&&(dirty||syncRunning||syncQueued||document.activeElement===$('wbMemo')&&boardCanManage()))return;const remote=(r.events||[]).map(fromServer);serverItems=new Map((r.events||[]).map(x=>[x.id,toServer(fromServer(x))]));
  serverMemoId=r.memo?.id||serverMemoId;serverMemoValue=r.memo?.content||'';
  if(boardCanManage()){
   // Only import legacy local entries on first server use; never overwrite existing shared server entries.
   const local=state.items||[];const remoteIds=new Set(remote.map(x=>x.id));
-  if(!remote.length&&local.length){state.items=local.map(x=>({...x,id:validUuid(x.id)?x.id:crypto.randomUUID()}))}
+  if(!remote.length&&local.length&&!localStorage.getItem('mobis-workboard-server-initialized-v1')){state.items=local.map(x=>({...x,id:validUuid(x.id)?x.id:crypto.randomUUID()}))}
   else state.items=remote;
   state.memo=r.memo?serverMemoValue:(state.memo||'');
  }else{state.items=remote;state.memo=serverMemoValue}
- $('wbMemo').value=state.memo;serverReady=true;render();updateVisibility();
+ $('wbMemo').value=state.memo;serverReady=true;localStorage.setItem('mobis-workboard-server-initialized-v1','1');render();updateVisibility();
  if(boardCanManage()&&(!remote.length&&state.items.length||!r.memo&&state.memo))scheduleServerSave();
 }
 window.addEventListener('mobis-board-access-updated',()=>{if(parentRole==='') {serverReady=false;return}loadServer()});
@@ -668,6 +668,9 @@ window.addEventListener('focus',()=>{if(serverReady&&!dirty&&!syncRunning)loadSe
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&serverReady&&!dirty&&!syncRunning)loadServer(true)});
 // QR 로그인과 권한 전달 순서가 달라도 서버 조회를 재시도한다.
 setInterval(()=>{if(!serverReady&&parentRole)loadServer()},5000);
+// 업무보드가 열려 있는 동안 12초마다 서버의 최신 일정·메모를 자동 확인한다.
+// 입력 중이거나 저장 중에는 덮어쓰지 않으며, 비활성 탭은 다시 열 때 조회한다.
+setInterval(()=>{if(document.hidden||!serverReady||serverLoadBusy||dirty||syncRunning||syncQueued)return;if(!['ADMIN','USER'].includes(parentRole))return;if(!(boardCanManage()||myPermissions.board_access==='shared'))return;if(document.activeElement===$('wbMemo')&&boardCanManage())return;loadServer(true)},12000);
 
 const shift=(date,n)=>{const d=new Date(date+'T12:00:00');d.setDate(d.getDate()+n);return d.toLocaleDateString('en-CA')};
 const occurs=(it,date)=>it.date===date||(it.repeat&&date>=it.date&&(!it.repeatUntil||date<=it.repeatUntil)&&(Math.round((new Date(date+'T12:00:00')-new Date(it.date+'T12:00:00'))/86400000)%7===0)&&!(it.excluded||[]).includes(date));
@@ -750,7 +753,20 @@ $('wbEditDelete').onclick=async()=>{if(!editing)return;const it=state.items.find
   }else return;
  }else{
    if(!confirm('이 일정을 삭제할까요?'))return;
-   state.items=state.items.filter(x=>x.id!==editing.id)
+   if(!serverReady){$('wbMemoStatus').textContent='삭제 실패: 서버에 연결되지 않았습니다.';return}
+   // Finish pending writes before deleting, so a delayed upsert cannot recreate the row.
+   if(syncRunning){$('wbMemoStatus').textContent='서버 저장 중입니다. 잠시 후 다시 삭제해 주세요.';return}
+   if(dirty)await flushServer();
+   if(syncRunning||dirty){$('wbMemoStatus').textContent='서버 저장을 완료한 뒤 삭제해 주세요.';return}
+   const targetId=it.id;
+   $('wbMemoStatus').textContent='일정 서버 삭제 중…';
+   const result=await wbRequest('delete',{id:targetId});
+   if(result.error){$('wbMemoStatus').textContent='일정 삭제 실패: '+result.error;return}
+   serverItems.delete(targetId);
+   state.items=state.items.filter(x=>x.id!==targetId);
+   try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}
+   $('wbMemoStatus').textContent='일정 서버 삭제됨';
+   $('wbEditCancel').click();render();return;
  }save();$('wbEditCancel').click();render()};
 $('wbMemo').value=state.memo||'';let timer;$('wbMemo').oninput=()=>{if(!boardCanManage())return;clearTimeout(timer);$('wbMemoStatus').textContent='저장 중...';timer=setTimeout(()=>{state.memo=$('wbMemo').value;save();$('wbMemoStatus').textContent='자동 저장됨'},450)};
 const oldApply=applyRoleAccess;applyRoleAccess=function(){oldApply();updateVisibility()};const oldNav=navigate;navigate=function(target){oldNav(target);updateVisibility()};
