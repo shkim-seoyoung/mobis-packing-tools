@@ -647,10 +647,10 @@ async function flushServer(){if(syncRunning){syncQueued=true;return}if(!serverRe
  for(const id of [...serverItems.keys()])if(!current.has(id)){const r=await wbRequest('delete',{id});if(r.error)throw Error(r.error);serverItems.delete(id)}
  if(state.memo!==serverMemoValue){const r=await wbRequest('memo',{id:serverMemoId,content:state.memo});if(r.error)throw Error(r.error);serverMemoValue=state.memo}
  if(status)status.textContent='서버 저장됨';
- }catch(e){if(status)status.textContent='서버 저장 실패 · 다시 시도 필요';console.error('업무보드 동기화',e)}finally{syncRunning=false;if(syncQueued){syncQueued=false;scheduleServerSave()}}}
+ }catch(e){if(status)status.textContent='서버 저장 실패: '+(e.message||e);console.error('업무보드 동기화',e)}finally{syncRunning=false;if(syncQueued){syncQueued=false;scheduleServerSave()}}}
 let serverMemoValue='';
 async function loadServer(){if(serverLoadBusy||serverReady||!['ADMIN','USER'].includes(parentRole))return;if(!(boardCanManage()||myPermissions.board_access==='shared'))return;serverLoadBusy=true;
- const r=await wbRequest('load');serverLoadBusy=false;if(r.error){console.warn('업무보드 서버 조회 실패:',r.error);return}
+ const r=await wbRequest('load');serverLoadBusy=false;if(r.error){console.warn('업무보드 서버 조회 실패:',r.error);const st=$('wbMemoStatus');if(st)st.textContent='서버 연결 실패: '+r.error;setTimeout(()=>{if(!serverReady&&parentRole)loadServer()},3500);return}
  const remote=(r.events||[]).map(fromServer);serverItems=new Map((r.events||[]).map(x=>[x.id,toServer(fromServer(x))]));
  serverMemoId=r.memo?.id||serverMemoId;serverMemoValue=r.memo?.content||'';
  if(boardCanManage()){
@@ -664,6 +664,8 @@ async function loadServer(){if(serverLoadBusy||serverReady||!['ADMIN','USER'].in
  if(boardCanManage()&&(!remote.length&&state.items.length||!r.memo&&state.memo))scheduleServerSave();
 }
 window.addEventListener('mobis-board-access-updated',()=>{if(parentRole==='') {serverReady=false;return}loadServer()});
+// QR 로그인과 권한 전달 순서가 달라도 서버 조회를 재시도한다.
+setInterval(()=>{if(!serverReady&&parentRole)loadServer()},5000);
 
 const shift=(date,n)=>{const d=new Date(date+'T12:00:00');d.setDate(d.getDate()+n);return d.toLocaleDateString('en-CA')};
 const occurs=(it,date)=>it.date===date||(it.repeat&&date>=it.date&&(!it.repeatUntil||date<=it.repeatUntil)&&(Math.round((new Date(date+'T12:00:00')-new Date(it.date+'T12:00:00'))/86400000)%7===0)&&!(it.excluded||[]).includes(date));
