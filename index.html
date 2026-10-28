@@ -789,7 +789,7 @@ $('wbSettingsSave').onclick=()=>{const parse=id=>[...new Set($(id).value.split(/
 $('wbWeekPrev').onclick=()=>{selected=shift(selected,-7);view=new Date(selected+'T12:00:00');$('wbDate').value=selected;render()};$('wbWeekNext').onclick=()=>{selected=shift(selected,7);view=new Date(selected+'T12:00:00');$('wbDate').value=selected;render()};
 let pickerYear=view.getFullYear();function drawMonthPicker(){ $('wbYearText').textContent=pickerYear+'년';const box=$('wbMonthChoices');box.replaceChildren();for(let m=0;m<12;m++){const b=document.createElement('button');b.type='button';b.textContent=(m+1)+'월';if(pickerYear===view.getFullYear()&&m===view.getMonth())b.classList.add('active');b.onclick=()=>{view=new Date(pickerYear,m,1);$('wbMonthPicker').hidden=true;$('wbCalendar').hidden=false;$('wbMonth').setAttribute('aria-expanded','false');calendar()};box.append(b)}}$('wbMonth').onclick=()=>{const picker=$('wbMonthPicker');picker.hidden=!picker.hidden;$('wbCalendar').hidden=!picker.hidden;$('wbMonth').setAttribute('aria-expanded',String(!picker.hidden));if(!picker.hidden){pickerYear=view.getFullYear();yearMode=false;$('wbYearChoices').hidden=true;$('wbMonthChoices').hidden=false;drawMonthPicker()}};let yearMode=false;function drawYearChoices(){const box=$('wbYearChoices');box.replaceChildren();const start=Math.floor(pickerYear/12)*12;for(let y=start;y<start+12;y++){const b=document.createElement('button');b.type='button';b.textContent=y+'년';if(y===pickerYear)b.className='active';b.onclick=()=>{pickerYear=y;yearMode=false;box.hidden=true;$('wbMonthChoices').hidden=false;drawMonthPicker()};box.append(b)}$('wbYearText').textContent=start+' ~ '+(start+11)+'년'}$('wbYearText').onclick=()=>{yearMode=!yearMode;$('wbYearChoices').hidden=!yearMode;$('wbMonthChoices').hidden=yearMode;if(yearMode)drawYearChoices();else drawMonthPicker()};$('wbYearPrev').onclick=()=>{pickerYear-=yearMode?12:1;if(yearMode)drawYearChoices();else drawMonthPicker()};$('wbYearNext').onclick=()=>{pickerYear+=yearMode?12:1;if(yearMode)drawYearChoices();else drawMonthPicker()};
 $('wbPrev').onclick=()=>{view.setMonth(view.getMonth()-1);if(!$('wbMonthPicker').hidden){pickerYear=view.getFullYear();drawMonthPicker()}calendar()};$('wbNext').onclick=()=>{view.setMonth(view.getMonth()+1);if(!$('wbMonthPicker').hidden){pickerYear=view.getFullYear();drawMonthPicker()}calendar()};$('wbDate').value=today();$('wbDate').onchange=()=>{selected=$('wbDate').value;view=new Date(selected+'T12:00:00');render()};$('wbPreset').onchange=()=>{ $('wbText').value=$('wbPreset').value; if($('wbText').value.startsWith('선적서류 마감'))$('wbShared').checked=true;};$('wbText').oninput=()=>{if($('wbText').value.startsWith('선적서류 마감'))$('wbShared').checked=true};
-$('wbAdd').onclick=()=>{const text=$('wbText').value.trim(),date=$('wbDate').value,time=getTime('wbTime','wbTimeCustom');if(!text||!date){alert('날짜와 일정 내용을 입력해 주세요.');return}state.items.push({id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),date,time,corp:$('wbCorp').value.trim()||'공통',text,shared:$('wbShared').checked,repeat:$('wbRepeat').checked,completed:{},excluded:[]});save();$('wbText').value='';setTime('wbTime','wbTimeCustom','');$('wbPreset').value='';$('wbCorp').value='';$('wbRepeat').checked=false;$('wbShared').checked=false;render()};
+$('wbAdd').onclick=()=>{const text=$('wbText').value.trim(),date=$('wbDate').value,time=getTime('wbTime','wbTimeCustom');const multi=!!$('wbMultiDate')?.checked;const dates=multi?(window.mobisMultiDates?.()||[]):[date];if(!text||!dates.length||(!multi&&!date)){alert(multi?'일정 내용과 등록할 날짜를 선택해 주세요.':'날짜와 일정 내용을 입력해 주세요.');return}for(const d of dates){state.items.push({id:crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random(),date:d,time,corp:$('wbCorp').value.trim()||'공통',text,shared:$('wbShared').checked,repeat:!multi&&$('wbRepeat').checked,completed:{},excluded:[]})}save();$('wbText').value='';setTime('wbTime','wbTimeCustom','');$('wbPreset').value='';$('wbCorp').value='';$('wbRepeat').checked=false;$('wbShared').checked=false;if(window.mobisMultiReset)window.mobisMultiReset();render()};
 $('wbEditCancel').onclick=()=>{$('wbEdit').classList.remove('open');editing=null};$('wbEditSave').onclick=()=>{if(!editing)return;const it=state.items.find(x=>x.id===editing.id);if(!it)return;const date=$('wbEditDate').value,time=getTime('wbEditTime','wbEditTimeCustom'),text=$('wbEditText').value.trim();if(!date||!text)return alert('날짜와 내용을 입력해 주세요.');if(it.repeat){it.excluded??=[];if(!it.excluded.includes(editing.date))it.excluded.push(editing.date);state.items.push({...it,id:String(Date.now())+Math.random(),date,time,text,corp:$('wbEditCorp').value.trim()||'공통',shared:$('wbEditShare').checked,repeat:false,completed:{},excluded:[]})}else{it.date=date;it.time=time;it.text=text;it.corp=$('wbEditCorp').value.trim()||'공통';it.shared=$('wbEditShare').checked}save();$('wbEditCancel').click();render()};function askRepeatDelete(){
  return new Promise(resolve=>{
   const overlay=document.createElement('div');
@@ -1212,4 +1212,58 @@ detail.addEventListener('input',sync);detail.addEventListener('change',sync);
 const observer=new MutationObserver(()=>{if(!root.hidden){queueMicrotask(()=>{detail.value=title.value||'';hideCategory();hideDetail()})}});
 observer.observe(root,{attributes:true,attributeFilter:['hidden']});
 root.addEventListener('submit',sync,true);
+})();</script><style id="wb-v61-multi-style">
+#workBoard .wb-multi-panel[hidden]{display:none!important}
+#workBoard .wb-multi-panel{grid-column:1/-1;border:1px solid #d9e2ef;border-radius:9px;background:#fafcff;padding:12px;margin-top:2px}
+#workBoard .wb-multi-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px}
+#workBoard .wb-multi-top strong{font-size:14px;color:#263d5a}
+#workBoard .wb-multi-nav{display:flex;align-items:center;gap:9px}
+#workBoard .wb-multi-nav button{background:#fff;border:1px solid #dce4ed;border-radius:5px;min-width:29px;height:28px;cursor:pointer;color:#41546d}
+#workBoard .wb-multi-nav span{font-weight:600;font-size:13px;min-width:85px;text-align:center}
+#workBoard .wb-multi-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+#workBoard .wb-multi-grid span{text-align:center;font-size:12px;color:#65748a;padding:5px 0}
+#workBoard .wb-multi-grid button{height:34px;border:1px solid transparent;background:white;border-radius:5px;color:#28384c;cursor:pointer;font-size:13px}
+#workBoard .wb-multi-grid button:hover{border-color:#98b6d7;background:#edf5ff}
+#workBoard .wb-multi-grid button.selected{background:#2466ad;color:white;font-weight:700}
+#workBoard .wb-multi-grid button:disabled{visibility:hidden}
+#workBoard .wb-multi-foot{font-size:12px;color:#53647b;margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+#workBoard .wb-multi-foot button{background:white;border:1px solid #d5deeb;border-radius:5px;padding:5px 9px;cursor:pointer}
+#workBoard .wb-multi-toggle{white-space:nowrap}
+#workBoard .wb-add .wb-multi-options{grid-column:1/-1!important;display:flex;align-items:center;gap:20px;flex-wrap:wrap;width:100%;padding:5px 4px}
+#workBoard .wb-add .wb-multi-options .wb-share{width:auto!important;max-width:none;font-size:13px;cursor:pointer;white-space:nowrap}
+#workBoard .wb-add .wb-multi-options .wb-share input{cursor:pointer}
+#workBoard .wb-add .wb-multi-panel{grid-column:1/-1!important;width:100%;max-width:none;box-sizing:border-box}
+#workBoard .wb-multi-foot button{font-size:12px;white-space:nowrap;min-width:85px;color:#41546d}
+#workBoard .wb-multi-top strong{font-size:13px}
+#workBoard .wb-multi-grid button{font-size:12px}
+
+@media(max-width:620px){#workBoard .wb-multi-panel{padding:9px}#workBoard .wb-multi-grid{gap:2px}#workBoard .wb-multi-grid button{height:32px}}
+</style>
+<script id="wb-v61-multi-script">(()=>{
+const board=document.getElementById('workBoard');if(!board)return;
+const repeat=board.querySelector('#wbRepeat'),form=board.querySelector('.wb-add'),date=board.querySelector('#wbDate');if(!repeat||!form||!date)return;
+const label=document.createElement('label');label.className='wb-share wb-multi-toggle';label.innerHTML='<input id="wbMultiDate" type="checkbox">여러 날짜';repeat.closest('label').after(label);
+const multi=label.querySelector('input');
+const panel=document.createElement('div');panel.className='wb-multi-panel';panel.hidden=true;
+panel.innerHTML='<div class="wb-multi-top"><strong>등록할 날짜 선택</strong><div class="wb-multi-nav"><button type="button" data-step="-1" aria-label="이전 달">‹</button><span id="wbMultiMonth"></span><button type="button" data-step="1" aria-label="다음 달">›</button></div></div><div class="wb-multi-grid" id="wbMultiGrid"></div><div class="wb-multi-foot"><span id="wbMultiCount">선택한 날짜 0개</span><button type="button" id="wbMultiClear">선택 초기화</button></div>';
+// Keep all three options together and place the calendar on its own full-width row.
+const optionRow=document.createElement('div');optionRow.className='wb-multi-options';
+const shared=board.querySelector('#wbShared')?.closest('label');
+const repeatLabel=repeat.closest('label');
+if(shared)form.insertBefore(optionRow,shared);
+if(shared)optionRow.append(shared);
+optionRow.append(repeatLabel,label);
+optionRow.after(panel);
+const selected=new Set();let month=new Date((date.value||new Date().toLocaleDateString('sv-SE'))+'T12:00:00');month.setDate(1);
+const pad=n=>String(n).padStart(2,'0');const fmt=(y,m,d)=>`${y}-${pad(m+1)}-${pad(d)}`;
+function draw(){const y=month.getFullYear(),m=month.getMonth();panel.querySelector('#wbMultiMonth').textContent=`${y}년 ${m+1}월`;const grid=panel.querySelector('#wbMultiGrid');grid.replaceChildren();for(const w of ['일','월','화','수','목','금','토']){const e=document.createElement('span');e.textContent=w;grid.append(e)}const first=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate();for(let i=0;i<first;i++){const e=document.createElement('button');e.disabled=true;grid.append(e)}for(let d=1;d<=days;d++){const key=fmt(y,m,d),b=document.createElement('button');b.type='button';b.textContent=d;b.classList.toggle('selected',selected.has(key));b.setAttribute('aria-pressed',String(selected.has(key)));b.onclick=()=>{if(selected.has(key))selected.delete(key);else selected.add(key);draw()};grid.append(b)}panel.querySelector('#wbMultiCount').textContent=`선택한 날짜 ${selected.size}개`}
+panel.querySelectorAll('[data-step]').forEach(b=>b.onclick=()=>{month.setMonth(month.getMonth()+Number(b.dataset.step));draw()});panel.querySelector('#wbMultiClear').onclick=()=>{selected.clear();draw()};
+function reset(){selected.clear();multi.checked=false;panel.hidden=true;repeat.disabled=false;date.disabled=false;draw()}
+window.mobisMultiDates=()=>[...selected].sort();window.mobisMultiReset=reset;
+multi.onchange=()=>{panel.hidden=!multi.checked;repeat.disabled=multi.checked;if(multi.checked){repeat.checked=false;month=new Date((date.value||new Date().toLocaleDateString('sv-SE'))+'T12:00:00');month.setDate(1);draw()}};
+repeat.addEventListener('change',()=>{if(repeat.checked&&multi.checked)reset()});
+const open=board.querySelector('#wbNewOpen');if(open)open.addEventListener('click',()=>{reset()},true);
+// The existing unified edit form reuses the registration form. Never show multi-date selection in edit mode.
+const edit=board.querySelector('#wbEdit');if(edit)new MutationObserver(()=>{if(edit.classList.contains('open')){reset();label.hidden=true}else label.hidden=false}).observe(edit,{attributes:true,attributeFilter:['class']});
+draw();
 })();</script></body></html>
