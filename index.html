@@ -113,6 +113,16 @@ body>header h1{font-weight:850;letter-spacing:-.6px;color:var(--sy-ink)}
 #back{border-radius:9px;border-color:#e0c6ca;color:#92243a}
 #back:hover{background:#fff4f5}
 @media(max-width:640px){body>header{min-height:62px;padding:10px 14px}body>header h1{font-size:16px}#menu{margin:28px auto}#menu .cards{gap:12px}#menu .card{min-height:148px;padding:20px 16px}}
+</style><style id="sy-menu-minimal-accent-20261028">
+/* 로그인 후 전체 메뉴만 시각적 강조 조정; 작업화면·로그인·기능 불변 */
+body.logged-in>header{border-top:0!important}
+body.logged-in>header #appTitle{border-left:0!important;padding-left:0!important}
+body.logged-in>header #appTitle::first-letter{color:inherit!important}
+body.logged-in #menu .card::before{content:none!important;display:none!important}
+body.logged-in #menu .card{border:1px solid #e0e5ed;box-shadow:0 5px 18px rgba(30,41,59,.045)}
+body.logged-in #menu .card .symbol{background:#fff2f3;border-color:#f6dfe3;color:#bc3546}
+body.logged-in #menu .card:hover:not(:disabled){border-color:#cf8993;box-shadow:0 10px 24px rgba(130,32,48,.09)}
+body.logged-in #menu .card:focus-visible{outline:2px solid #d77e8b;outline-offset:3px}
 </style></head><body>
 <header><button id="back" type="button">← 전체 메뉴</button><h1 id="appTitle">모비스 포장작업 통합도구</h1><div id="account"><span id="roleLabel"></span><button id="changePasswordOpen" type="button">비밀번호 변경</button><button id="globalLogout" type="button">로그아웃</button></div></header>
 <div id="loginStage"></div>
