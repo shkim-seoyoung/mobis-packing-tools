@@ -631,7 +631,15 @@ header h1{min-width:0;flex:0 1 auto;white-space:nowrap;overflow:hidden;text-over
  #workBoard #wbMemoSection #wbSharedWrap>textarea{height:var(--wb-mobile-memo-height,220px)!important;min-height:var(--wb-mobile-memo-height,220px)!important;max-height:none!important;flex:0 0 auto!important}
 }
 </style>
-</head><body>
+<style id="wb-v74-notice-style">
+#wbNoticeV74{position:fixed;right:18px;bottom:22px;z-index:100000;width:min(335px,calc(100vw - 28px));padding:12px 14px;background:#fff;border:1px solid #cbd5e1;border-left:4px solid #2873ba;border-radius:10px;box-shadow:0 6px 22px #15283e30;color:#26374b;font:13px/1.55 "Malgun Gothic",sans-serif;white-space:normal}
+#wbNoticeV74[hidden]{display:none!important}
+#wbNoticeV74 .wb-notice-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:5px}
+#wbNoticeV74 .wb-notice-head strong{font-size:13px}
+#wbNoticeV74 .wb-notice-head button{border:0;background:transparent;color:#53657a;cursor:pointer;font-size:21px;line-height:1;padding:0 2px}
+#wbNoticeV74 .wb-notice-body{white-space:pre-line;font-size:12px;color:#455770}
+@media(max-width:900px){#wbNoticeV74{right:10px;bottom:14px;width:min(330px,calc(100vw - 20px))}}
+</style></head><body>
 <header><button id="back" type="button">← 전체 메뉴</button><h1 id="appTitle">모비스 포장작업 통합도구</h1><div id="account"><span id="roleLabel"></span><div class="perm-entry" id="permEntry" style="display:none"><button type="button" id="permOpen"><svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.86 2.86-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 1.55V21h-4v-.05A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.86-2.86.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.55-1H3v-4h.05A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.88L4.2 7.06 7.06 4.2l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.55V3h4v.05A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.86 2.86-.06.06A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 1.55 1H21v4h-.05A1.7 1.7 0 0 0 19.4 15z"/></svg> 계정별 권한 관리</button></div><button id="changePasswordOpen" type="button">비밀번호 변경</button><button id="globalLogout" type="button">로그아웃</button></div></header>
 <div id="loginStage"></div>
 
@@ -844,15 +852,70 @@ let syncTimer;let dirty=false;
 function scheduleServerSave(){if(!serverReady||!boardCanManage())return;clearTimeout(syncTimer);syncTimer=setTimeout(flushServer,550)}
 async function flushServer(){if(syncRunning){syncQueued=true;return}if(!serverReady||!boardCanManage()||!dirty)return;syncRunning=true;dirty=false;const status=$('wbMemoStatus');try{
  const current=new Map();for(const it of state.items){const row=toServer(it);current.set(row.id,row)}
- for(const [id,row] of current){if(JSON.stringify(serverItems.get(id))===JSON.stringify(row))continue;const r=await wbRequest('upsert',{event:row});if(r.error)throw Error(r.error);if(!r.saved)throw Error('일정 서버 저장 확인 실패');serverItems.set(id,row)}
- for(const id of [...serverItems.keys()])if(!current.has(id)){const r=await wbRequest('delete',{id});if(r.error)throw Error(r.error);serverItems.delete(id)}
- if(state.memo!==serverMemoValue){const r=await wbRequest('memo',{id:serverMemoId,content:state.memo});if(r.error)throw Error(r.error);serverMemoValue=state.memo}
+ for(const [id,row] of current){if(JSON.stringify(serverItems.get(id))===JSON.stringify(row))continue;const r=await wbRequest('upsert',{event:row});if(r.error)throw Error(r.error);if(!r.saved)throw Error('일정 서버 저장 확인 실패');wbNoticeOwnEvent(id);serverItems.set(id,row)}
+ for(const id of [...serverItems.keys()])if(!current.has(id)){const r=await wbRequest('delete',{id});if(r.error)throw Error(r.error);wbNoticeOwnEvent(id);serverItems.delete(id)}
+ if(state.memo!==serverMemoValue){wbNoticeOwnMemo('shared');const r=await wbRequest('memo',{id:serverMemoId,content:state.memo});if(r.error)throw Error(r.error);serverMemoValue=state.memo;wbNoticeOwnMemo('shared')}
  if(status)status.textContent='서버 저장됨';
  }catch(e){dirty=true;if(status)status.textContent='서버 저장 실패: '+(e.message||e);console.error('업무보드 동기화',e)}finally{syncRunning=false;if(syncQueued||dirty){syncQueued=false;scheduleServerSave()}}}
 let serverMemoValue='';
+// v74: 실행 중 업무보드 변경 안내. DB 스키마 변경 없음.
+const wbNoticeOwnEvents=new Map();let wbNoticeOwnSharedUntil=0,wbNoticeOwnInternalUntil=0;
+let wbNoticeSnapshot=null,wbNoticeInternalSnapshot=null,wbNoticeMemoPending=null;
+let wbNoticeCounts={add:0,edit:0,remove:0,shared:0,internal:0};
+let wbNoticeRemain=10000,wbNoticeStart=0,wbNoticeTimer=null,wbNoticeOpen=false;
+const wbNoticeDay=()=>new Date().toLocaleDateString('en-CA');
+function wbNoticeOwnEvent(id){wbNoticeOwnEvents.set(String(id),Date.now()+12000)}
+function wbNoticeOwnMemo(kind){if(kind==='internal')wbNoticeOwnInternalUntil=Date.now()+12000;else wbNoticeOwnSharedUntil=Date.now()+12000}
+function wbNoticeCanSee(row){return boardCanManage()||!!row.shared}
+function wbNoticeOccurs(row,day){if(!row)return false;const start=String(row.date||'').slice(0,10);if(!start)return false;if((row.excluded||[]).includes(day))return false;if(row.repeatUntil&&day>row.repeatUntil)return false;if(start===day)return true;if(!row.repeat||start>day)return false;const diff=Math.round((new Date(day+'T12:00:00')-new Date(start+'T12:00:00'))/86400000);return diff>=0&&diff%7===0}
+function wbNoticeComparable(row){if(!row)return '';const v={...row};delete v.updated_at;delete v.created_at;delete v.completed_dates;delete v.completed;return JSON.stringify(v)}
+function wbNoticeCompare(r){
+ const next=new Map((r.events||[]).map(raw=>{const row=fromServer(raw);return [String(row.id),row]}));
+ if(wbNoticeSnapshot){const day=wbNoticeDay(),now=Date.now();const keys=new Set([...wbNoticeSnapshot.keys(),...next.keys()]);
+ for(const id of keys){const old=wbNoticeSnapshot.get(id),cur=next.get(id);if(wbNoticeOwnEvents.get(id)>now)continue;
+ const before=old&&wbNoticeCanSee(old)&&wbNoticeOccurs(old,day),after=cur&&wbNoticeCanSee(cur)&&wbNoticeOccurs(cur,day);
+ if(!before&&!after)continue;
+ if(!before&&after)wbNoticePush('add');else if(before&&!after)wbNoticePush('remove');else if(wbNoticeComparable(old)!==wbNoticeComparable(cur))wbNoticePush('edit');
+ }}
+ wbNoticeSnapshot=next;
+ const memo=r.memo?.content||'';
+ if(wbNoticeMemoPending!==null&&memo===wbNoticeMemoPending)wbNoticeMemoPending=null;
+ if(wbNoticeSharedSnapshot!==null&&memo!==wbNoticeSharedSnapshot&&Date.now()>wbNoticeOwnSharedUntil){wbNoticeScheduleMemo('shared',memo)}
+ wbNoticeSharedSnapshot=memo;
+}
+let wbNoticeSharedSnapshot=null,wbNoticeSharedTimer=null,wbNoticeInternalTimer=null;
+function wbNoticeScheduleMemo(kind,value){const key=kind==='internal'?'wbNoticeInternalTimer':'wbNoticeSharedTimer';
+ if(kind==='internal'){clearTimeout(wbNoticeInternalTimer);wbNoticeInternalTimer=setTimeout(()=>wbNoticePush('internal'),60000)}
+ else{clearTimeout(wbNoticeSharedTimer);wbNoticeSharedTimer=setTimeout(()=>wbNoticePush('shared'),60000)}
+}
+function wbNoticeInternal(value){if(wbNoticeInternalSnapshot!==null&&value!==wbNoticeInternalSnapshot&&Date.now()>wbNoticeOwnInternalUntil)wbNoticeScheduleMemo('internal',value);wbNoticeInternalSnapshot=value}
+function wbNoticeAllowed(){return !!(parentRole&& (boardCanManage()||myPermissions.board_access==='shared'))}
+function wbNoticeOnBoard(){const board=$('workBoard');return wbNoticeAllowed()&&board&&getComputedStyle(board).display!=='none'&&$('workspace').dataset.active===''}
+function wbNoticeFocused(){return document.visibilityState==='visible'&&document.hasFocus()&&wbNoticeOnBoard()}
+function wbNoticePush(type){if(!wbNoticeAllowed())return;if((type==='internal'||type==='edit'||type==='add'||type==='remove')&&!boardCanManage()&&type==='internal')return;
+ wbNoticeCounts[type]++;wbNoticeOpen=true;wbNoticeRemain=10000;wbNoticeDraw();}
+function wbNoticeDraw(){const box=document.getElementById('wbNoticeV74');if(!box)return;
+ if(!wbNoticeOpen||!wbNoticeOnBoard()){box.hidden=true;wbNoticePause();return}
+ const lines=[];const c=wbNoticeCounts;
+ const schedule=[['add','추가'],['edit','수정'],['remove','삭제']].filter(([k])=>c[k]).map(([k,t])=>t+' '+c[k]+'건');
+ if(schedule.length)lines.push('오늘 일정 '+schedule.join(' · '));
+ if(c.shared)lines.push('현장 공유 메모 수정'+(c.shared>1?' '+c.shared+'건':''));
+ if(c.internal&&boardCanManage())lines.push('내부 메모 수정'+(c.internal>1?' '+c.internal+'건':''));
+ if(!lines.length){box.hidden=true;return}box.querySelector('.wb-notice-body').textContent=lines.join('\n');box.hidden=false;
+ wbNoticeRun();
+}
+function wbNoticePause(){if(wbNoticeTimer){clearTimeout(wbNoticeTimer);wbNoticeTimer=null;wbNoticeRemain=Math.max(0,wbNoticeRemain-(Date.now()-wbNoticeStart))}}
+function wbNoticeRun(){wbNoticePause();if(!wbNoticeFocused())return;if(wbNoticeRemain<=0){wbNoticeClose();return}wbNoticeStart=Date.now();wbNoticeTimer=setTimeout(wbNoticeClose,wbNoticeRemain)}
+function wbNoticeClose(){clearTimeout(wbNoticeTimer);wbNoticeTimer=null;wbNoticeOpen=false;wbNoticeCounts={add:0,edit:0,remove:0,shared:0,internal:0};wbNoticeRemain=10000;const box=document.getElementById('wbNoticeV74');if(box)box.hidden=true}
+function wbNoticeInstall(){if(document.getElementById('wbNoticeV74'))return;const el=document.createElement('div');el.id='wbNoticeV74';el.hidden=true;el.innerHTML='<div class="wb-notice-head"><strong>🔔 업무보드 변경사항</strong><button type="button" aria-label="알림 닫기">×</button></div><div class="wb-notice-body"></div>';document.body.append(el);el.querySelector('button').onclick=wbNoticeClose;
+ window.addEventListener('focus',()=>setTimeout(wbNoticeDraw,60));window.addEventListener('blur',()=>{wbNoticePause();wbNoticeDraw()});document.addEventListener('visibilitychange',wbNoticeDraw);window.addEventListener('mobis-board-access-updated',()=>setTimeout(wbNoticeDraw,150));
+ document.addEventListener('click',()=>setTimeout(wbNoticeDraw,80),true);
+ setInterval(()=>{if(wbNoticeOpen)wbNoticeDraw()},2000);
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',wbNoticeInstall);else wbNoticeInstall();
 async function loadServer(force=false){if(serverLoadBusy||(serverReady&&!force)||!['ADMIN','USER'].includes(parentRole))return;if(!(boardCanManage()||myPermissions.board_access==='shared'))return;serverLoadBusy=true;
  const r=await wbRequest('load');serverLoadBusy=false;if(r.error){console.warn('업무보드 서버 조회 실패:',r.error);const st=$('wbMemoStatus');if(st)st.textContent='서버 연결 실패: '+r.error;setTimeout(()=>{if(!serverReady&&parentRole)loadServer()},3500);return}
- if(force&&(dirty||syncRunning||syncQueued||document.activeElement===$('wbMemo')&&boardCanManage()))return;const remote=(r.events||[]).map(fromServer);serverItems=new Map((r.events||[]).map(x=>[x.id,toServer(fromServer(x))]));
+ if(force&&(dirty||syncRunning||syncQueued||document.activeElement===$('wbMemo')&&boardCanManage()))return;wbNoticeCompare(r);const remote=(r.events||[]).map(fromServer);serverItems=new Map((r.events||[]).map(x=>[x.id,toServer(fromServer(x))]));
  serverMemoId=r.memo?.id||serverMemoId;serverMemoValue=r.memo?.content||'';
  if(boardCanManage()){
   // Only import legacy local entries on first server use; never overwrite existing shared server entries.
@@ -882,7 +945,7 @@ function refreshFromRealtime(){
 window.addEventListener('mobis-wb-changed-local',refreshFromRealtime);window.addEventListener('mobis-wb-changed-local',()=>{if(boardCanManage()&&document.activeElement!==$('wbInternalMemo'))wbLoadInternal()});
 // 백그라운드에서 누락된 이벤트는 화면 복귀 시 재조회한다.
 // 60초 보조 조회는 Realtime 연결이 일시적으로 끊긴 경우를 위한 안전장치다.
-setInterval(()=>{if(!document.hidden&&serverReady&&!dirty&&!syncRunning&&!syncQueued&&!serverLoadBusy)loadServer(true)},60000);
+setInterval(()=>{if(!document.hidden&&serverReady&&!dirty&&!syncRunning&&!syncQueued&&!serverLoadBusy){loadServer(true);if(boardCanManage()&&document.activeElement!==$('wbInternalMemo'))wbLoadInternal()}},60000);
 
 const shift=(date,n)=>{const d=new Date(date+'T12:00:00');d.setDate(d.getDate()+n);return d.toLocaleDateString('en-CA')};
 const occurs=(it,date)=>{if((it.excluded||[]).includes(date))return false;if(it.repeatUntil&&date>it.repeatUntil)return false;return it.date===date||(it.repeat&&date>=it.date&&(Math.round((new Date(date+'T12:00:00')-new Date(it.date+'T12:00:00'))/86400000)%7===0))};
@@ -890,8 +953,8 @@ const boardCanManage=()=>parentRole==='ADMIN'||(parentUsername||'').toUpperCase(
 let wbActiveMemoTab='internal',wbInternalLoaded=false,wbInternalValue='',wbInternalTimer=null;
 function wbSetMemoTab(tab){wbActiveMemoTab=tab;const full=boardCanManage();$('wbInternalTab').classList.toggle('active',tab==='internal');$('wbSharedTab').classList.toggle('active',tab==='shared');$('wbInternalWrap').style.display=full&&tab==='internal'?'block':'none';$('wbSharedWrap').style.display=!full||tab==='shared'?'block':'none';if(full&&tab==='internal'&&!wbInternalLoaded)wbLoadInternal();}
 $('wbInternalTab').onclick=()=>wbSetMemoTab('internal');$('wbSharedTab').onclick=()=>wbSetMemoTab('shared');
-async function wbLoadInternal(){if(!boardCanManage()||!serverReady)return;const r=await wbRequest('internal_load');if(r.error){$('wbInternalStatus').textContent='내부 메모 조회 실패: '+r.error;return}wbInternalLoaded=true;wbInternalValue=r.memo?.content||'';if(document.activeElement!==$('wbInternalMemo'))$('wbInternalMemo').value=wbInternalValue;$('wbInternalStatus').textContent='서버 연결됨';}
-$('wbInternalMemo').oninput=()=>{if(!boardCanManage())return;clearTimeout(wbInternalTimer);$('wbInternalStatus').textContent='저장 중...';wbInternalTimer=setTimeout(async()=>{const val=$('wbInternalMemo').value;const r=await wbRequest('internal_memo',{content:val});if(r.error){$('wbInternalStatus').textContent='저장 실패: '+r.error;return}wbInternalValue=val;$('wbInternalStatus').textContent='서버 저장됨';},650)};
+async function wbLoadInternal(){if(!boardCanManage()||!serverReady)return;const r=await wbRequest('internal_load');if(r.error){$('wbInternalStatus').textContent='내부 메모 조회 실패: '+r.error;return}wbNoticeInternal(r.memo?.content||'');wbInternalLoaded=true;wbInternalValue=r.memo?.content||'';if(document.activeElement!==$('wbInternalMemo'))$('wbInternalMemo').value=wbInternalValue;$('wbInternalStatus').textContent='서버 연결됨';}
+$('wbInternalMemo').oninput=()=>{if(!boardCanManage())return;clearTimeout(wbInternalTimer);$('wbInternalStatus').textContent='저장 중...';wbInternalTimer=setTimeout(async()=>{const val=$('wbInternalMemo').value;wbNoticeOwnMemo('internal');const r=await wbRequest('internal_memo',{content:val});if(r.error){$('wbInternalStatus').textContent='저장 실패: '+r.error;return}wbInternalValue=val;wbNoticeOwnMemo('internal');$('wbInternalStatus').textContent='서버 저장됨';},650)};
 function updateVisibility(){const name=(parentUsername||'').toUpperCase(),disp=(parentDisplayName||'').toUpperCase();const full=parentRole==='ADMIN'||name==='MOBIS'||disp==='MOBIS'||myPermissions.board_access==='manage';const shared=full||myPermissions.board_access==='shared';const isMain=$('workspace').dataset.active==='';$('workBoard').style.display=shared&&isMain?(window.innerWidth>900?'grid':'block'):'none';$('wbMemoSection').style.display=shared?'block':'none';$('wbMemo').readOnly=!full;$('wbMemoTabs').style.display=full?'flex':'none';$('wbInternalWrap').style.display=full&&wbActiveMemoTab==='internal'?'block':'none';$('wbSharedWrap').style.display=!full||wbActiveMemoTab==='shared'?'block':'none';$('wbNewOpen').style.display=full?'':'none';$('wbDaySection').classList.toggle('wb-readonly',!full);$('workBoard').classList.toggle('wb-readonly',!full);}
 function calendar(){const y=view.getFullYear(),m=view.getMonth(),first=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate();$('wbMonth').textContent=`${y}년 ${m+1}월`;$('wbCalendar').replaceChildren();for(let i=0;i<first;i++)$('wbCalendar').append(document.createElement('span'));for(let day=1;day<=days;day++){const date=`${y}-${String(m+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`,b=document.createElement('button');b.type='button';b.textContent=day;if(date===today())b.classList.add('today');if(date===selected)b.classList.add('selected');if(state.items.some(it=>boardCanSee(it)&&occurs(it,date)))b.classList.add('has-event');b.onclick=()=>{selected=date;$('wbDate').value=date;render()};$('wbCalendar').append(b)}}
 function makeRow({it,date,done},list){const row=document.createElement('div');row.className='wb-row'+(done?' done':'');const cb=document.createElement('input');cb.type='checkbox';cb.checked=done;cb.title='완료';cb.disabled=!boardCanManage();cb.onchange=async()=>{if(!boardCanManage())return;const checked=cb.checked;it.completed??={};const before=!!it.completed[date];it.completed[date]=checked;render();const status=$('wbMemoStatus');
