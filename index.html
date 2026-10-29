@@ -500,6 +500,137 @@ header h1{min-width:0;flex:0 1 auto;white-space:nowrap;overflow:hidden;text-over
  #wbMemoSection .wb-scroll-thumb{position:absolute;left:0;right:0;top:0;border-radius:5px;background:rgba(71,85,105,.62);min-height:20px}
 }
 </style>
+<style id="wb-v67-memo-layout-fix">
+/* Match the adjacent schedule card without collapsing the editor. */
+@media (min-width:901px){
+ #workBoard .wb-top-pair > #wbMemoSection.wb-side-memo{height:290px;min-height:290px;box-sizing:border-box;display:flex;flex-direction:column}
+ #workBoard .wb-top-pair > #wbMemoSection .wb-scroll-host{height:220px;min-height:220px;position:relative;flex:none}
+ #workBoard .wb-top-pair > #wbMemoSection .wb-scroll-host textarea{height:100%;min-height:0;width:100%;box-sizing:border-box;resize:vertical}
+ #workBoard .wb-top-pair > #wbMemoSection #wbInternalWrap,
+ #workBoard .wb-top-pair > #wbMemoSection #wbSharedWrap{min-height:0}
+}
+</style>
+<style id="wb-v68-layout-structural-fix">
+/* Desktop cards grow with the memo editor, rather than clipping a resized textarea. */
+@media (min-width:901px){
+ #workBoard .wb-top-pair{align-items:stretch!important;grid-auto-rows:auto!important}
+ #workBoard .wb-top-pair>.wb-today-side{
+   height:auto!important;min-height:310px!important;box-sizing:border-box!important;
+   display:flex!important;flex-direction:column!important;overflow:visible!important;
+ }
+ #workBoard .wb-top-pair>.wb-today-side>h4{
+   font-size:13px!important;line-height:28px!important;min-height:28px!important;
+   margin:0 0 10px!important;font-weight:700!important;
+ }
+ #workBoard .wb-top-pair>.wb-today-side>#wbSelectedDetails{
+   display:block!important;flex:1 1 auto!important;height:auto!important;
+   min-height:0!important;max-height:none!important;box-sizing:border-box!important;
+   margin:0!important;overflow-y:auto!important;
+ }
+ #workBoard .wb-top-pair>#wbMemoSection.wb-side-memo{
+   height:auto!important;min-height:310px!important;box-sizing:border-box!important;
+   display:flex!important;flex-direction:column!important;overflow:visible!important;
+ }
+ #workBoard .wb-top-pair>#wbMemoSection .wb-memo-heading{
+   min-height:28px!important;line-height:28px!important;margin:0 0 10px!important;
+   flex:0 0 auto!important;
+ }
+ #workBoard .wb-top-pair>#wbMemoSection .wb-memo-heading h4{
+   font-size:13px!important;line-height:28px!important;font-weight:700!important;
+ }
+ #workBoard .wb-top-pair>#wbMemoSection #wbInternalWrap,
+ #workBoard .wb-top-pair>#wbMemoSection #wbSharedWrap{
+   flex:1 1 auto!important;display:flex;flex-direction:column;min-height:0!important;
+ }
+ #workBoard .wb-top-pair>#wbMemoSection #wbInternalWrap[style*="display: none"],
+ #workBoard .wb-top-pair>#wbMemoSection #wbSharedWrap[style*="display: none"]{display:none!important}
+ #workBoard .wb-top-pair>#wbMemoSection .wb-scroll-host{
+   position:relative!important;height:auto!important;min-height:0!important;
+   flex:1 1 auto!important;display:flex!important;flex-direction:column!important;
+ }
+ #workBoard .wb-top-pair>#wbMemoSection .wb-scroll-host textarea{
+   width:100%!important;box-sizing:border-box!important;height:220px;
+   min-height:220px!important;resize:vertical!important;flex:none!important;
+ }
+ #workBoard .wb-top-pair>#wbMemoSection .wb-small{flex:0 0 auto!important}
+}
+</style>
+<style id="wb-v69-resize-and-alignment">
+@media(min-width:901px){
+ #workBoard .wb-top-pair{--wb-card-height:310px;align-items:stretch!important}
+ #workBoard .wb-top-pair>.wb-today-side,
+ #workBoard .wb-top-pair>#wbMemoSection.wb-side-memo{min-height:var(--wb-card-height)!important;height:var(--wb-card-height)!important;box-sizing:border-box!important}
+ #workBoard .wb-top-pair>.wb-today-side>h4,
+ #workBoard .wb-top-pair>#wbMemoSection .wb-memo-heading{height:30px!important;min-height:30px!important;line-height:30px!important;margin:0 0 5px!important;box-sizing:border-box!important}
+ #workBoard .wb-top-pair>.wb-today-side>h4{display:flex!important;align-items:center!important;font-size:13px!important;line-height:normal!important}
+ #workBoard .wb-top-pair>#wbMemoSection .wb-memo-heading{gap:8px!important;flex-wrap:nowrap!important;align-items:center!important}
+ #workBoard .wb-top-pair>#wbMemoSection .wb-memo-heading h4{font-size:13px!important;line-height:normal!important}
+ #workBoard .wb-top-pair>#wbMemoSection .wb-memo-tabs button{padding:4px 9px!important;line-height:18px!important}
+ #workBoard .wb-top-pair>.wb-today-side>#wbSelectedDetails{margin:0!important;flex:1 1 auto!important;min-height:0!important}
+ #workBoard .wb-top-pair>#wbMemoSection #wbInternalWrap,
+ #workBoard .wb-top-pair>#wbMemoSection #wbSharedWrap{flex:1 1 auto!important;min-height:0!important}
+ #workBoard .wb-top-pair>#wbMemoSection .wb-scroll-host{flex:1 1 auto!important;min-height:0!important;height:auto!important}
+ #workBoard .wb-top-pair>#wbMemoSection .wb-scroll-host textarea{height:100%!important;min-height:0!important;resize:none!important;box-sizing:border-box!important}
+ #workBoard .wb-top-pair>#wbMemoSection .wb-resize-grip{position:absolute;bottom:3px;left:50%;transform:translateX(-50%);width:50px;height:13px;display:flex;align-items:center;justify-content:center;cursor:ns-resize;touch-action:none;user-select:none;border-radius:8px}
+ #workBoard .wb-top-pair>#wbMemoSection .wb-resize-grip:before{content:'';width:30px;height:3px;background:#c4cfdd;border-radius:3px}
+ #workBoard .wb-top-pair>#wbMemoSection .wb-resize-grip:hover:before{background:#8194ad}
+ #workBoard .wb-top-pair>#wbMemoSection{position:relative!important;padding-bottom:17px!important}
+}
+@media(max-width:900px){
+ #workBoard #wbMemoSection.wb-side-memo{position:relative!important;display:flex!important;flex-direction:column!important;padding-bottom:23px!important;height:auto!important;min-height:0!important;overflow:hidden!important}
+ #workBoard #wbMemoSection .wb-resize-grip{display:flex!important;position:absolute;left:50%;bottom:4px;transform:translateX(-50%);width:64px;height:18px;align-items:center;justify-content:center;cursor:ns-resize;touch-action:none;user-select:none}
+ #workBoard #wbMemoSection .wb-resize-grip:before{content:'';width:30px;height:3px;background:#c4cfdd;border-radius:4px}
+ #workBoard #wbMemoSection #wbInternalWrap:not([style*='display: none']),
+ #workBoard #wbMemoSection #wbSharedWrap:not([style*='display: none']){display:flex;flex-direction:column;min-height:0}
+ #workBoard #wbMemoSection .wb-scroll-host{height:var(--wb-mobile-memo-height,220px)!important;min-height:0!important;flex:none!important;position:relative!important}
+ #workBoard #wbMemoSection .wb-scroll-host textarea{height:100%!important;min-height:0!important;max-height:100%!important;resize:none!important}
+ #workBoard #wbMemoSection #wbInternalWrap>textarea,
+ #workBoard #wbMemoSection #wbSharedWrap>textarea{height:var(--wb-mobile-memo-height,220px)!important;min-height:0!important;resize:none!important;flex:none!important}
+}
+#workBoard #wbMemoSection .wb-small{line-height:1.4!important}
+@media(min-width:901px){#workBoard #wbMemoSection .wb-small{margin-bottom:3px!important}}
+@media(max-width:900px){#workBoard #wbMemoSection .wb-small{margin-bottom:0!important}}
+
+</style>
+<style id="wb-v70-single-resize-control">
+/* One resize mechanism only: the board grip, never the native textarea corner. */
+#workBoard #wbMemoSection textarea#wbMemo,
+#workBoard #wbMemoSection textarea#wbInternalMemo {
+ resize:none!important;
+ max-width:100%!important;
+ box-sizing:border-box!important;
+}
+@media(min-width:901px){
+ #workBoard .wb-top-pair>#wbMemoSection.wb-side-memo{display:flex!important;flex-direction:column!important;overflow:hidden!important}
+ #workBoard .wb-top-pair>#wbMemoSection #wbInternalWrap,
+ #workBoard .wb-top-pair>#wbMemoSection #wbSharedWrap{
+  flex:1 1 auto!important;min-height:0!important;display:flex;flex-direction:column;
+ }
+ #workBoard .wb-top-pair>#wbMemoSection #wbInternalWrap[style*="display: none"],
+ #workBoard .wb-top-pair>#wbMemoSection #wbSharedWrap[style*="display: none"]{display:none!important}
+ #workBoard .wb-top-pair>#wbMemoSection .wb-scroll-host{
+  flex:1 1 auto!important;min-height:0!important;height:auto!important;
+  display:flex!important;flex-direction:column!important;
+ }
+ #workBoard .wb-top-pair>#wbMemoSection .wb-scroll-host textarea,
+ #workBoard .wb-top-pair>#wbMemoSection #wbInternalWrap>textarea,
+ #workBoard .wb-top-pair>#wbMemoSection #wbSharedWrap>textarea{
+  flex:1 1 auto!important;min-height:0!important;height:100%!important;
+  max-height:100%!important;resize:none!important;overflow-y:auto!important;
+ }
+ #workBoard .wb-top-pair>#wbMemoSection .wb-small{flex:0 0 auto!important}
+}
+</style>
+<style id="wb-v72-mobile-resize-fix">
+@media(max-width:900px){
+ #workBoard #wbMemoSection.wb-side-memo{padding-bottom:17px!important;overflow:visible!important}
+ #workBoard #wbMemoSection .wb-resize-grip{bottom:1px!important;height:16px!important}
+ #workBoard #wbMemoSection .wb-scroll-host{height:var(--wb-mobile-memo-height,220px)!important;min-height:var(--wb-mobile-memo-height,220px)!important;max-height:none!important;flex:0 0 auto!important}
+ #workBoard #wbMemoSection .wb-scroll-host textarea{height:100%!important;min-height:0!important;max-height:100%!important;flex:1 1 auto!important}
+ #workBoard #wbMemoSection #wbInternalWrap>textarea,
+ #workBoard #wbMemoSection #wbSharedWrap>textarea{height:var(--wb-mobile-memo-height,220px)!important;min-height:var(--wb-mobile-memo-height,220px)!important;max-height:none!important;flex:0 0 auto!important}
+}
+</style>
 </head><body>
 <header><button id="back" type="button">← 전체 메뉴</button><h1 id="appTitle">모비스 포장작업 통합도구</h1><div id="account"><span id="roleLabel"></span><div class="perm-entry" id="permEntry" style="display:none"><button type="button" id="permOpen"><svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.86 2.86-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 1.55V21h-4v-.05A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.86-2.86.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.55-1H3v-4h.05A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.88L4.2 7.06 7.06 4.2l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.55V3h4v.05A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.86 2.86-.06.06A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 1.55 1H21v4h-.05A1.7 1.7 0 0 0 19.4 15z"/></svg> 계정별 권한 관리</button></div><button id="changePasswordOpen" type="button">비밀번호 변경</button><button id="globalLogout" type="button">로그아웃</button></div></header>
 <div id="loginStage"></div>
@@ -1318,6 +1449,71 @@ draw();
     });
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script>
+<script id="wb-v72-resize-behavior">
+(function(){
+ function init(){
+  const memo=document.getElementById('wbMemoSection');
+  if(!memo)return;
+  let grip=memo.querySelector('.wb-resize-grip');
+  if(!grip){grip=document.createElement('div');grip.className='wb-resize-grip';grip.setAttribute('role','separator');grip.setAttribute('aria-label','메모 영역 높이 조절');grip.tabIndex=0;memo.appendChild(grip)}
+  let drag=null;
+  function start(y){
+   const pair=memo.closest('.wb-top-pair');if(!pair)return;
+   const mobile=window.matchMedia('(max-width:900px)').matches;
+   const host=memo.querySelector('.wb-scroll-host');
+   const ta=memo.querySelector('textarea:not([hidden])');
+   const actual=host?host.getBoundingClientRect().height:(ta?ta.getBoundingClientRect().height:220);
+   const base=mobile?(parseFloat(memo.style.getPropertyValue('--wb-mobile-memo-height'))||actual||220):(parseFloat(pair.style.getPropertyValue('--wb-card-height'))||pair.getBoundingClientRect().height);
+   drag={y,height:base,pair,mobile};
+  }
+  function move(y){if(!drag)return;const h=Math.max(drag.mobile?130:270,Math.min(850,Math.round(drag.height+y-drag.y)));
+   if(drag.mobile)memo.style.setProperty('--wb-mobile-memo-height',h+'px');
+   else drag.pair.style.setProperty('--wb-card-height',h+'px');
+  }
+  grip.addEventListener('pointerdown',e=>{if(e.pointerType==='touch')return;start(e.clientY);if(!drag)return;try{grip.setPointerCapture(e.pointerId)}catch(_){}e.preventDefault()});
+  grip.addEventListener('pointermove',e=>{if(drag)move(e.clientY)});
+  grip.addEventListener('pointerup',()=>drag=null);
+  grip.addEventListener('pointercancel',()=>drag=null);
+  grip.addEventListener('touchstart',e=>{if(e.touches.length!==1)return;start(e.touches[0].clientY);if(drag)e.preventDefault()},{passive:false});
+  grip.addEventListener('touchmove',e=>{if(!drag)return;move(e.touches[0].clientY);e.preventDefault()},{passive:false});
+  grip.addEventListener('touchend',()=>drag=null);
+  grip.addEventListener('touchcancel',()=>drag=null);
+  grip.addEventListener('keydown',e=>{if(!['ArrowUp','ArrowDown'].includes(e.key))return;start(0);if(!drag)return;move(e.key==='ArrowDown'?20:-20);drag=null;e.preventDefault()});
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script>
+<style id="wb-v73-mobile-natural-memo">
+@media(max-width:900px){
+ #workBoard #wbMemoSection.wb-side-memo{padding-bottom:12px!important;overflow:visible!important}
+ #workBoard #wbMemoSection .wb-resize-grip{display:none!important}
+ #workBoard #wbMemoSection .wb-scroll-host{height:auto!important;min-height:0!important;overflow:visible!important;flex:none!important}
+ #workBoard #wbMemoSection .wb-scroll-host textarea,
+ #workBoard #wbMemoSection #wbInternalWrap>textarea,
+ #workBoard #wbMemoSection #wbSharedWrap>textarea{height:auto!important;max-height:none!important;min-height:210px!important;resize:none!important;overflow:hidden!important;flex:none!important}
+ #workBoard #wbMemoSection .wb-scroll-indicator{display:none!important}
+}
+@media(min-width:901px){
+ #workBoard #wbMemoSection .wb-small{margin-bottom:8px!important}
+}
+</style>
+<script id="wb-v73-mobile-natural-memo-script">
+(function(){
+ function init(){
+  const section=document.getElementById('wbMemoSection');if(!section)return;
+  const tas=[document.getElementById('wbInternalMemo'),document.getElementById('wbMemo')].filter(Boolean);
+  function update(){if(!window.matchMedia('(max-width:900px)').matches)return;
+   for(const ta of tas){ta.style.setProperty('height','auto','important');
+    const height=Math.max(210,ta.scrollHeight+2);ta.style.setProperty('height',height+'px','important');}
+  }
+  tas.forEach(ta=>ta.addEventListener('input',update));
+  section.addEventListener('click',()=>setTimeout(update,30));
+  window.addEventListener('resize',update);window.addEventListener('orientationchange',update);
+  setInterval(update,1800);requestAnimationFrame(update);
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
 </script>
 </body></html>
